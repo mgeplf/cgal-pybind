@@ -1,0 +1,5 @@
+build
+*.swp
+*.swo
+__pycache__/
+examples/venv
