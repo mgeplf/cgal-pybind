@@ -37,4 +37,15 @@ def contract():
     scene = trimesh.Scene([path_visual, mesh ])
     scene.show()
 
-contract()
+
+def authalic():
+    edges = surface_mesh.authalic()
+    edges = list(zip(edges[:-1], edges[1:]))
+
+    path_visual = trimesh.load_path(mesh.vertices[edges, :] + [2, 0, 0])
+    scene = trimesh.Scene([path_visual, mesh ])
+    scene.show()
+
+
+#contract()
+authalic()
