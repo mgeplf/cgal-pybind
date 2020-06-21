@@ -4,6 +4,7 @@ Simple test of binding [cgal](http://cgal.org) with [pybind11](https://pybind11.
 
 ## Methods:
 * Skeletonization/contraction
+* Discrete_authalic_parameterizer_3
 
 ## Trying:
     $ sh build.sh
