@@ -5,49 +5,64 @@
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/Surface_mesh.h>
 
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/extract_mean_curvature_flow_skeleton.h>
+#include <CGAL/mesh_segmentation.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+
+
+// Property map associating a facet with an integer as id to an
+// element in a vector stored internally
+template<class ValueType>
+struct Facet_with_id_pmap
+        : public boost::put_get_helper<ValueType&, Facet_with_id_pmap<ValueType> >
+{
+    using key_type =  CGAL::Polyhedron_3<
+        CGAL::Exact_predicates_inexact_constructions_kernel,
+        CGAL::Polyhedron_items_with_id_3
+    >::Facet_const_handle;
+    using category = boost::lvalue_property_map_tag;
+
+    Facet_with_id_pmap(std::vector<ValueType>& internal_vector) : internal_vector(internal_vector) { }
+
+    ValueType& operator[](key_type key) const
+    { return internal_vector[key->id()]; }
+
+private:
+    std::vector<ValueType>& internal_vector;
+};
 
 
 namespace py = pybind11;
 
 void bind_triangle_mesh(py::module& m)
 {
+/*
     using Kernel = CGAL::Simple_cartesian<double>;
+
     using Point_2 = Kernel::Point_2;
     using Point_3 = Kernel::Point_3;
+    using Polyhedron = CGAL::Polyhedron_3<Kernel>;
 
     using SurfaceMesh = CGAL::Surface_mesh<Point_3>;
     using Skeletonization = CGAL::Mean_curvature_flow_skeletonization<SurfaceMesh>;
+*/
+   using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
+   using Point_3 = Kernel::Point_3;
+   using Polyhedron = CGAL::Polyhedron_3<Kernel, CGAL::Polyhedron_items_with_id_3>;
+   using IntIndices = std::vector<std::tuple<int, int, int>>;
 
-    using IntIndices = std::vector<std::tuple<int, int, int>>;
-
-    py::class_<SurfaceMesh>(m, "SurfaceMesh")
+    py::class_<Polyhedron>(m, "Polyhedron")
         .def(py::init())
-        .def("add_vertices",
-             [](SurfaceMesh& self, const std::vector<Point_3>& points) {
-                 for(const auto& p : points) {
-                     self.add_vertex(p);
-                 }
-             })
-        .def("add_faces",
-             [](SurfaceMesh& self, const IntIndices& indices) {
-                for(auto [v0, v1, v2] : indices) {
-                     self.add_face(static_cast<SurfaceMesh::Vertex_index>(v0),
-                                   static_cast<SurfaceMesh::Vertex_index>(v1),
-                                   static_cast<SurfaceMesh::Vertex_index>(v2));
-                 }
-             })
-        .def("number_of_vertices", &SurfaceMesh::number_of_vertices)
-        .def("number_of_faces", &SurfaceMesh::number_of_faces)
-        .def("area", [](SurfaceMesh& self) {
-             return CGAL::Polygon_mesh_processing::area(self);
+        .def("load_from_off",[](Polyhedron& self, const std::string& full_path_name) {
+            std::ifstream input(full_path_name);
+            input >> self;
         })
-        .def("contract", [](SurfaceMesh& self) {
-            using Skeletonization = CGAL::Mean_curvature_flow_skeletonization<SurfaceMesh>;
-
+        .def("contract", [](Polyhedron& self) {
+            using Skeletonization = CGAL::Mean_curvature_flow_skeletonization<Polyhedron> ;
+            using Skeleton  = Skeletonization::Skeleton;
             Skeletonization mean_curve_skeletonizer(self);
             mean_curve_skeletonizer.contract_until_convergence();
 
@@ -70,6 +85,44 @@ void bind_triangle_mesh(py::module& m)
             }
 
             return py::make_tuple(return_vertices, return_edges);
+        })
+        .def("segmentation", [](Polyhedron& self){
+
+            // assign a unique id to each facet in the mesh
+            std::size_t facet_id = 0;
+            for(auto facet = self.facets_begin(); facet != self.facets_end(); ++facet) {
+                facet->id() = facet_id;
+                ++facet_id;
+            }
+
+            // create a property-map for signed distance function values
+            std::vector<double> sdf_values(self.size_of_facets());
+            Facet_with_id_pmap<double> sdf_property_map(sdf_values);
+
+            std::pair<double, double> min_max_sdf = CGAL::sdf_values(self, sdf_property_map);
+            // mapping between the skeleton points and the surface points
+            /*
+            std::ofstream output(out_filename);
+            // access SDF values (with constant-complexity)
+            for(auto facet = mesh.facets_begin(); facet != mesh.facets_end(); ++facet){
+                output << sdf_property_map[facet] << " ";
+            }
+            output << std::endl;
+            */
+            // create a property-map for segment-ids
+            std::vector<std::size_t> segment_ids(self.size_of_facets());
+            Facet_with_id_pmap<std::size_t> segment_property_map(segment_ids);
+
+            std::size_t num_segments = CGAL::segmentation_from_sdf_values(
+                self, sdf_property_map, segment_property_map);
+            /*
+            // access segment-ids (with constant-complexity)
+            for(auto facet = mesh.facets_begin(); facet != mesh.facets_end(); ++facet){
+                output << segment_property_map[facet] << " ";
+            }
+            output << std::endl;
+            */
+            return py::make_tuple(sdf_property_map, segment_property_map);
         })
         ;
 }
