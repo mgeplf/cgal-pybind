@@ -21,6 +21,8 @@ using key_type =  CGAL::Polyhedron_3<
     CGAL::Exact_predicates_inexact_constructions_kernel,
     CGAL::Polyhedron_items_with_id_3
 >::Facet_const_handle;
+
+/*-----------------------------------------------------*/
 template<class ValueType>
 struct Facet_with_id_pmap
         : public boost::put_get_helper<ValueType&, Facet_with_id_pmap<ValueType> >
@@ -70,16 +72,13 @@ public:
 
 };
 
-/*-----------------------------------------------------*/
-
-
 /*---------------------------------------------------*/
 namespace py = pybind11;
 using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
 //using Point_3 = Kernel::Point_3;
 using Polyhedron = CGAL::Polyhedron_3<Kernel, CGAL::Polyhedron_items_with_id_3>;
 
-
+/*---------------------------------------------------*/
 py::tuple contract(Polyhedron& polyhendron) {
     /**
      * Convert an interactively contracted skeleton to a skeleton curve
@@ -142,7 +141,7 @@ py::tuple contract(Polyhedron& polyhendron) {
     return py::make_tuple(return_vertices, return_edges, return_correspondence);
 }
 
-
+/*---------------------------------------------------*/
 py::tuple segmentation(Polyhedron& polyhendron) {
     /**
      * assign a unique id to each facet in the mesh.
@@ -195,6 +194,8 @@ py::tuple segmentation(Polyhedron& polyhendron) {
     return py::make_tuple(return_sdf_property_map, return_segment_property_map);
 }
 
+
+/*---------------------------------------------------*/
 void bind_triangle_mesh(py::module& m)
     {
     using HalfedgeDS=Polyhedron::HalfedgeDS;
