@@ -9,6 +9,8 @@
 ## Installation
 ```bash
 $> git clone https://github.com/CGAL/cgal.git $PATH_TO_GIT
+$> git submodule init
+$> git submodule update
 $> export CGAL_DIR=$PATH_TO_GIT
 $> pip install .
 ```
