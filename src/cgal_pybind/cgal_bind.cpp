@@ -7,7 +7,7 @@ void bind_triangle_mesh(py::module&);
 void bind_facet_with_id_pmap(py::module&);
 void bind_polyhedron_inc_builder(py::module&);
 
-PYBIND11_MODULE(cgal_pybind, m)
+PYBIND11_MODULE(_cgal_pybind, m)
 {
     m.doc() = "python binding for CGAL (https://doc.cgal.org/latest/Manual/index.html)";
     bind_point(m);

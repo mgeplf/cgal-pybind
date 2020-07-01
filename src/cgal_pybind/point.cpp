@@ -2,8 +2,15 @@
 
 #include <boost/lexical_cast.hpp> // boost::lexical_cast
 
-#include <CGAL/Simple_cartesian.h>
-using Point_3 = CGAL::Simple_cartesian<double>::Point_3;
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+using Point_3 = CGAL::Point_3<CGAL::Exact_predicates_inexact_constructions_kernel>;
+
+namespace py = pybind11;
+
+
+#include <pybind11/pybind11.h>
+#include <iostream>
+#include <pybind11/numpy.h>
 
 namespace py = pybind11;
 
@@ -26,5 +33,7 @@ void bind_point(py::module& m)
             r += boost::lexical_cast<std::string>(self.z());
             r += ")";
             return r;
-        });
+        })
+        ;
 }
+
